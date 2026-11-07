@@ -1,6 +1,7 @@
 // Offline cache: the app must work in the cockpit without connectivity.
-const CACHE = "edto-crz-v1";
-const ASSETS = ["./", "index.html", "styles.css", "app.js", "manifest.webmanifest", "icons/icon.svg"];
+const CACHE = "edto-crz-v2";
+const ASSETS = ["./", "index.html", "styles.css", "app.js", "manifest.webmanifest", "icons/icon.svg",
+  "js/edto.js", "js/calc.js", "js/data/index.js", "js/data/b738.js"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));

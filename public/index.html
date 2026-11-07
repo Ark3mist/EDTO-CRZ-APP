@@ -23,9 +23,101 @@
     </section>
 
     <section class="screen" id="screen-edto" data-tab="edto" aria-labelledby="tab-edto" hidden>
-      <div class="card">
-        <h2>EDTO</h2>
-        <p class="muted">EDTO calculations go here.</p>
+      <div class="segmented" role="tablist" aria-label="EDTO sections">
+        <button role="tab" data-section="alt" aria-selected="true">Altitude Capability</button>
+        <button role="tab" data-section="cf" aria-selected="false">Critical Fuel</button>
+      </div>
+
+      <!-- ALTITUDE CAPABILITY -->
+      <div class="section" data-section="alt">
+        <div class="card">
+          <label class="field"><span>Aircraft</span>
+            <select data-key="variant"><option>737-800</option><option>737-8</option></select>
+          </label>
+          <p class="nodata" hidden>No 737-8 charts loaded. Altitude capability needs 737-8 data.</p>
+        </div>
+
+        <div class="card">
+          <h2>Weight</h2>
+          <div class="grid">
+            <label class="field"><span>ZFW <i>kg</i></span><input data-key="zfw" type="number" inputmode="numeric" step="100" min="0"></label>
+            <label class="field"><span>Fuel on board <i>kg</i></span><input data-key="fob" type="number" inputmode="numeric" step="100" min="0"></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Fuel to burn to ETP</h2>
+          <div class="grid">
+            <label class="field"><span>Current time <i>UTC</i></span>
+              <span class="with-btn"><input data-key="nowUtc" inputmode="numeric" placeholder="HHMM" maxlength="5" autocomplete="off"><button type="button" id="btn-now">Now</button></span>
+            </label>
+            <label class="field"><span>ETA ETP <i>UTC</i></span><input data-key="etaUtc" inputmode="numeric" placeholder="HHMM" maxlength="5" autocomplete="off"></label>
+            <label class="field"><span>Burn rate <i>kg/h</i></span><input data-key="burn" type="number" inputmode="numeric" step="10" min="0"></label>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Conditions</h2>
+          <div class="grid">
+            <label class="field"><span>ISA deviation <i>°C</i></span><input data-key="isa" type="number" inputmode="decimal" step="1"></label>
+            <label class="field"><span>Anti-ice</span>
+              <select data-key="antiIce"><option value="off">Off</option><option value="engine">Engine</option><option value="engineWing">Engine + wing</option></select>
+            </label>
+          </div>
+        </div>
+
+        <div class="card results" aria-live="polite">
+          <h2>Results</h2>
+          <dl>
+            <dt>Time to ETP</dt><dd id="r-time">—</dd>
+            <dt>Fuel to burn</dt><dd id="r-burn">—</dd>
+            <dt>Fuel remaining at ETP</dt><dd id="r-rem">—</dd>
+            <dt>Gross weight at ETP</dt><dd id="r-gw" class="key">—</dd>
+            <dt>Alt capability · LRC</dt><dd id="r-lrc" class="key">—</dd>
+            <dt>Alt capability · 310 KIAS</dt><dd id="r-310" class="key">—</dd>
+          </dl>
+          <p class="msg" id="r-alt-msg" hidden></p>
+          <p class="foot">Engine inop, max continuous thrust, 100 ft/min residual climb. Linear interpolation, no extrapolation. Altitudes rounded down to 100 ft.</p>
+        </div>
+      </div>
+
+      <!-- CRITICAL FUEL -->
+      <div class="section" data-section="cf" hidden>
+        <div class="card">
+          <label class="field"><span>Aircraft</span>
+            <select data-key="variant"><option>737-800</option><option>737-8</option></select>
+          </label>
+          <p class="nodata" hidden>No 737-8 charts loaded. Critical fuel needs 737-8 data.</p>
+        </div>
+
+        <div class="card">
+          <h2>Inputs</h2>
+          <div class="grid">
+            <label class="field"><span>Distance ETP → alternate <i>NM</i></span><input data-key="dist" type="number" inputmode="numeric" step="10" min="0"></label>
+            <label class="field"><span>Weight at critical point <i>kg</i></span>
+              <span class="with-btn"><input data-key="cpw" type="number" inputmode="numeric" step="100" min="0"><button type="button" id="btn-gw" disabled>ETP GW</button></span>
+            </label>
+            <label class="field"><span>Wind component <i>kt</i></span>
+              <span class="with-btn"><input data-key="wind" type="number" inputmode="numeric" step="1" min="0">
+              <select data-key="windDir" aria-label="Wind direction"><option value="HW">HW</option><option value="TW">TW</option></select></span>
+            </label>
+            <label class="field"><span>ISA deviation <i>°C</i></span><input data-key="isa" type="number" inputmode="decimal" step="1"></label>
+            <label class="field check"><input data-key="icing" type="checkbox"><span>Icing conditions <i>+17 %</i></span></label>
+          </div>
+        </div>
+
+        <div class="card results" aria-live="polite">
+          <h2>Results</h2>
+          <dl>
+            <dt>Nil-wind fuel</dt><dd id="c-nil">—</dd>
+            <dt>Wind correction</dt><dd id="c-wind">—</dd>
+            <dt>ISA correction</dt><dd id="c-isa">—</dd>
+            <dt>Icing correction</dt><dd id="c-ice">—</dd>
+            <dt>Critical fuel · engine inop</dt><dd id="c-total" class="key">—</dd>
+          </dl>
+          <p class="msg" id="c-msg" hidden></p>
+          <p class="foot">310 KIAS engine-inop critical fuel. Compare with all-engines critical fuel and use the higher (all-engines chart not loaded). Performance deterioration not included. Total rounded up to 100 kg.</p>
+        </div>
       </div>
     </section>
 
@@ -53,5 +145,6 @@
   </nav>
 
   <script src="app.js" defer></script>
+  <script type="module" src="js/edto.js"></script>
 </body>
 </html>

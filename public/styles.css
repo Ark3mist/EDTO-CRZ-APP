@@ -5,6 +5,8 @@
   --text: #e6edf7;
   --muted: #8a99b4;
   --accent: #3fb6ff;
+  --warn: #ffc24b;
+  --bad: #ff6b6b;
   --nav-h: 64px;
   --safe-b: env(safe-area-inset-bottom, 0px);
 }
@@ -82,3 +84,60 @@ main {
   background: var(--accent);
 }
 .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -4px; }
+
+/* ---------- EDTO ---------- */
+.screen > * + * { margin-top: 12px; }
+.section > * + * { margin-top: 12px; }
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.segmented button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--muted);
+  font: 600 14px/1.2 inherit;
+  cursor: pointer;
+}
+.segmented button[aria-selected="true"] { background: var(--accent); color: #04121f; }
+
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--muted); }
+.field i { font-style: normal; opacity: 0.7; }
+.field input, .field select, .with-btn button {
+  min-height: 44px;
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: 500 16px/1 inherit; /* 16px stops iOS zoom on focus */
+  font-variant-numeric: tabular-nums;
+}
+.field input:focus, .field select:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.with-btn { display: flex; gap: 8px; }
+.with-btn > :first-child { flex: 1; min-width: 0; }
+.with-btn button, .with-btn select { width: auto; flex: none; font-weight: 600; cursor: pointer; }
+.with-btn button:disabled { opacity: 0.4; cursor: default; }
+.field.check { flex-direction: row; align-items: center; gap: 10px; min-height: 44px; color: var(--text); font-size: 15px; }
+.field.check input { width: 22px; min-height: 22px; height: 22px; accent-color: var(--accent); }
+
+.nodata { margin: 10px 0 0; color: var(--warn); font-size: 14px; }
+
+.results dl { display: grid; grid-template-columns: 1fr auto; gap: 10px 12px; margin: 0; }
+.results dt { color: var(--muted); font-size: 14px; }
+.results dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.results dd.key { color: var(--accent); font-size: 18px; }
+.results dd.bad { color: var(--bad); }
+.msg { margin: 12px 0 0; color: var(--warn); font-size: 14px; }
+.foot { margin: 12px 0 0; color: var(--muted); font-size: 12px; line-height: 1.4; }
