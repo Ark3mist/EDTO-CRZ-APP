@@ -1,7 +1,6 @@
-import { test } from "node:test";
-import assert from "node:assert/strict";
-import { interp, parseHHMM, etpWeight, altitudeCapability, criticalFuel } from "../public/js/calc.js";
-import * as b738 from "../public/js/data/b738.js";
+const { test } = require("node:test");
+const assert = require("node:assert/strict");
+const { interp, parseHHMM, etpWeight, altitudeCapability, criticalFuel, B738 } = require("../perf.js");
 
 const near = (a, b, tol = 1e-6) => assert.ok(Math.abs(a - b) < tol, `${a} != ${b}`);
 
@@ -33,9 +32,9 @@ test("etpWeight: basic and midnight rollover", () => {
 });
 
 test("altitude capability: chart points, interpolation, anti-ice, limits", () => {
-  const d = b738.altitudeCapability;
+  const d = B738.altitudeCapability;
   assert.equal(altitudeCapability(d, "lrc", 85, 0), 15200);
-  assert.equal(altitudeCapability(d, "lrc", 85, -20), 15200); // below ISA+10 uses that column
+  assert.equal(altitudeCapability(d, "lrc", 85, -20), 15200);
   assert.equal(altitudeCapability(d, "lrc", 40, 20), 31800);
   assert.equal(altitudeCapability(d, "kias310", 60, 15), 16500);
   near(altitudeCapability(d, "lrc", 72.5, 10), (20900 + 19200) / 2);
@@ -47,7 +46,7 @@ test("altitude capability: chart points, interpolation, anti-ice, limits", () =>
 });
 
 test("critical fuel: chart points, wind, corrections, limits", () => {
-  const d = b738.criticalFuel;
+  const d = B738.criticalFuel;
   const base = { isaDev: 0, icing: false, windKt: 0 };
   near(criticalFuel(d, { ...base, distNm: 400, weightT: 45 }).total, 3.4);
   near(criticalFuel(d, { ...base, distNm: 1400, weightT: 85 }).total, 12.9);
@@ -57,8 +56,8 @@ test("critical fuel: chart points, wind, corrections, limits", () => {
   near(criticalFuel(d, { ...base, distNm: 1000, weightT: 65, windKt: 75 }).windCorr, (1.4 + 3.5) / 2);
   near(criticalFuel(d, { ...base, distNm: 1000, weightT: 65, isaDev: 20 }).total, 8.8 * 1.01);
   near(criticalFuel(d, { ...base, distNm: 1000, weightT: 65, icing: true }).total, 8.8 * 1.17);
-  assert.ok(criticalFuel(d, { ...base, distNm: 700, weightT: 45 }).error); // "-" cell
-  assert.ok(criticalFuel(d, { ...base, distNm: 1300, weightT: 65, windKt: 100 }).error); // "-" cell
+  assert.ok(criticalFuel(d, { ...base, distNm: 700, weightT: 45 }).error);
+  assert.ok(criticalFuel(d, { ...base, distNm: 1300, weightT: 65, windKt: 100 }).error);
   assert.ok(criticalFuel(d, { ...base, distNm: 350, weightT: 65 }).error);
   assert.ok(criticalFuel(d, { ...base, distNm: 1000, weightT: 65, windKt: -60 }).error);
 });
