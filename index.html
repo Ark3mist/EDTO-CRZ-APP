@@ -87,6 +87,19 @@ dialog.dlg::backdrop{background:rgba(0,0,0,.55)}
 .setlist{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 14px;align-items:center;margin:0}
 .setlist dt{color:var(--muted);font-size:13px} .setlist dd{margin:0}
 .brand{text-align:center;color:var(--muted);font-size:12px;letter-spacing:.04em;padding:10px 0 4px}
+.altgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:340px){.altgrid{grid-template-columns:1fr}}
+.altcard{border-radius:12px;padding:12px 10px 10px;color:#fff;box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.altcard.lrc{background:linear-gradient(135deg,#10b981,#059669)}
+.altcard.fix{background:linear-gradient(135deg,#ef4444,#dc2626)}
+.altcard h3{margin:0 0 10px;font-size:15px;text-align:center;line-height:1.25}
+.altcard h3 small{display:block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.85;margin-top:2px}
+.altcard .alt{background:rgba(15,23,42,.88);border-radius:8px;padding:8px 10px;margin-top:8px}
+.altcard .alt span{display:block;font-size:12px;font-weight:600}
+.altcard .alt b{display:block;font:700 20px/1.3 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;margin-top:2px;white-space:nowrap}
+.altcard.lrc .alt span{color:#6ee7b7} .altcard.lrc .alt b{color:#a7f3d0}
+.altcard.fix .alt span{color:#fca5a5} .altcard.fix .alt b{color:#fecaca}
+@media (max-width:400px){.altcard .alt b{font-size:17px}.altcard .alt{padding:7px 8px}.altcard .alt span{font-size:11px}.altgrid{gap:8px}.altcard{padding:12px 8px 8px}}
 </style>
 </head>
 <body>
@@ -151,16 +164,13 @@ dialog.dlg::backdrop{background:rgba(0,0,0,.55)}
       <h2>Conditions</h2>
       <div class="r2">
         <div><label for="isa">ISA deviation °C</label><input id="isa" data-k="isa" class="mono" type="number" inputmode="decimal" step="1" placeholder="0"></div>
-        <div><label for="antiIce">Anti-ice</label><select id="antiIce" data-k="antiIce"><option value="off">Off</option><option value="engine">Engine</option><option value="engineWing">Engine + wing</option></select></div>
       </div>
     </section>
 
     <section data-calc="alt" aria-live="polite">
-      <h2>Result</h2>
+      <h2>Weight at ETP</h2>
       <div class="big"><dl class="res">
         <dt>Gross weight at ETP</dt><dd id="rGw">—</dd>
-        <dt>Alt capability · LRC</dt><dd id="rLrc">—</dd>
-        <dt>Alt capability · 310 KIAS</dt><dd id="r310">—</dd>
       </dl></div>
       <dl class="res">
         <dt>Time to ETP</dt><dd id="rTime">—</dd>
@@ -168,7 +178,26 @@ dialog.dlg::backdrop{background:rgba(0,0,0,.55)}
         <dt>Fuel remaining at ETP</dt><dd id="rRem">—</dd>
       </dl>
       <div class="msg" id="rMsg" hidden></div>
-      <div class="hint">Engine inop, max continuous thrust, 100 ft/min residual climb. Linear interpolation, no extrapolation. Altitudes rounded down to 100 ft.</div>
+    </section>
+
+    <section data-calc="alt" aria-live="polite">
+      <h2>Engine inoperative altitude at point</h2>
+      <div class="altgrid">
+        <div class="altcard lrc">
+          <h3>Long Range Cruise<small>Standard strategy</small></h3>
+          <div class="alt"><span>No Anti&#8209;Ice</span><b id="aLrcOff">--</b></div>
+          <div class="alt"><span>Engine Anti&#8209;Ice</span><b id="aLrcEng">--</b></div>
+          <div class="alt"><span>Engine + Wing Anti&#8209;Ice</span><b id="aLrcWing">--</b></div>
+        </div>
+        <div class="altcard fix">
+          <h3>Fixed Speed<small>310 KIAS</small></h3>
+          <div class="alt"><span>No Anti&#8209;Ice</span><b id="a310Off">--</b></div>
+          <div class="alt"><span>Engine Anti&#8209;Ice</span><b id="a310Eng">--</b></div>
+          <div class="alt"><span>Engine + Wing Anti&#8209;Ice</span><b id="a310Wing">--</b></div>
+        </div>
+      </div>
+      <div class="msg" id="aMsg" hidden></div>
+      <div class="hint">At gross weight at ETP and ISA deviation. Max continuous thrust, 100 ft/min residual climb. Linear interpolation, no extrapolation. Rounded down to 100 ft.</div>
     </section>
 
     <!-- ---------- Critical fuel ---------- -->
@@ -225,7 +254,7 @@ dialog.dlg::backdrop{background:rgba(0,0,0,.55)}
 
   // ---------- EDTO state (times are never restored: they go stale) ----------
   const NOT_SAVED = ["nowUtc", "etaUtc"];
-  const state = Object.assign({ variant: "737-800", calc: "alt", antiIce: "off", windDir: "HW", icing: false }, store.get("edto.inputs") || {});
+  const state = Object.assign({ variant: "737-800", calc: "alt", windDir: "HW", icing: false }, store.get("edto.inputs") || {});
   function save(){ const o = {}; for (const k in state) if (!NOT_SAVED.includes(k)) o[k] = state[k]; store.set("edto.inputs", o); }
 
   const fields = document.querySelectorAll("[data-k]");
@@ -278,18 +307,21 @@ dialog.dlg::backdrop{background:rgba(0,0,0,.55)}
     $("gwBtn").disabled = etpGw == null;
     $("gwBtn").title = etpGw == null ? "Fill in Altitude capability first" : kg(etpGw);
 
-    // altitude capability
+    msg($("rMsg"), ok ? w.warning : null);
+
+    // engine inop altitude at point: both strategies, all three anti-ice cases
     const isa = num(state.isa);
-    let lrc = null, k310 = null, aMsg = ok ? w.warning : null;
-    if (ok && data && Number.isFinite(isa)) {
-      const t = w.grossWeight / 1000;
-      lrc = PERF.altitudeCapability(data.altitudeCapability, "lrc", t, isa, state.antiIce);
-      k310 = PERF.altitudeCapability(data.altitudeCapability, "kias310", t, isa, state.antiIce);
-      if (lrc == null) aMsg = "Outside chart: gross weight 40,000–85,000 kg and ISA up to +20 °C.";
-    } else if (ok && data) aMsg = aMsg || "Enter ISA deviation for altitude capability.";
-    set("rLrc", lrc == null ? "—" : ft(lrc));
-    set("r310", k310 == null ? "—" : ft(k310));
-    msg($("rMsg"), aMsg);
+    const CELLS = [["lrc", "off", "aLrcOff"], ["lrc", "engine", "aLrcEng"], ["lrc", "engineWing", "aLrcWing"],
+                   ["kias310", "off", "a310Off"], ["kias310", "engine", "a310Eng"], ["kias310", "engineWing", "a310Wing"]];
+    let aMsg = null, any = false;
+    CELLS.forEach(([strat, ai, id]) => {
+      const v = ok && data && Number.isFinite(isa) ? PERF.altitudeCapability(data.altitudeCapability, strat, w.grossWeight / 1000, isa, ai) : null;
+      if (v != null) any = true;
+      set(id, v == null ? "--" : ft(v));
+    });
+    if (ok && data && !Number.isFinite(isa)) aMsg = "Enter ISA deviation.";
+    else if (ok && data && !any) aMsg = "Outside chart: gross weight 40,000–85,000 kg and ISA up to +20 °C.";
+    msg($("aMsg"), aMsg);
 
     // critical fuel
     const blank = () => ["cNil", "cWind", "cIsa", "cIce", "cTotal"].forEach((id) => set(id, "—"));
@@ -348,7 +380,7 @@ dialog.dlg::backdrop{background:rgba(0,0,0,.55)}
 
   // ---------- version and update ----------
   // Keep APP_VERSION equal to version.json; bump both (and CACHE in sw.js) on each release.
-  const APP_VERSION = "1-02-26";
+  const APP_VERSION = "1-03-26";
   $("verTxt").textContent = APP_VERSION;
   async function checkUpdate(manual){
     if (!navigator.onLine) { if (manual) $("updMsg").textContent = "Offline: connect to check."; return; }
