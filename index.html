@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>EDTO CRZ</title>
+<meta name="description" content="B737 engine-inop EDTO calculations: ETP weight, altitude capability and critical fuel, offline.">
+<meta name="theme-color" content="#0f1720">
+<script>try{var t=JSON.parse(localStorage.getItem("edto.theme"));if(t==="light"||t==="dark")document.documentElement.dataset.theme=t;}catch(e){}</script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="EDTO CRZ">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#fff; --ink:#111827; --muted:#5b6472; --line:#dde1e6; --field:#f8f9fb;
+  --accent:#0f766e; --accent-ink:#fff; --soft:#e7f3f1; --warn:#b45309; --err:#b91c1c;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0b1016; --panel:#121a23; --ink:#e6e9ee; --muted:#8c97a7; --line:#243142; --field:#0e151d;
+  --accent:#2dd4bf; --accent-ink:#06201d; --soft:#123330; --warn:#f59e0b; --err:#f87171;
+}}
+:root[data-theme="dark"]{
+  --bg:#0b1016; --panel:#121a23; --ink:#e6e9ee; --muted:#8c97a7; --line:#243142; --field:#0e151d;
+  --accent:#2dd4bf; --accent-ink:#06201d; --soft:#123330; --warn:#f59e0b; --err:#f87171;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:880px;margin:0 auto;padding:12px 16px calc(84px + env(safe-area-inset-bottom))}
+.view{display:grid;gap:14px}
+.view[hidden]{display:none}
+.appbar{position:sticky;top:0;z-index:5;background:var(--bg);padding:calc(8px + env(safe-area-inset-top)) 0 8px;margin:0 0 6px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.appbar h1{font-size:18px;margin:0}
+.tabtitle{font-weight:500;color:var(--muted);font-size:15px}
+.tabtitle:before{content:"· "}
+.byline{display:block;font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:1px}
+.appbar .right{display:flex;gap:8px;align-items:center}
+.updbadge{font-size:12px;font-weight:600;color:var(--accent-ink);background:var(--accent);border-radius:999px;padding:2px 9px;cursor:pointer;border:0}
+.iconbtn{width:36px;height:36px;padding:0;display:grid;place-items:center;border-radius:999px;color:var(--muted)}
+.iconbtn svg{width:20px;height:20px}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:20;display:grid;grid-template-columns:repeat(3,1fr);background:var(--panel);border-top:1px solid var(--line);padding:4px max(6px,env(safe-area-inset-left)) calc(4px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-right));box-shadow:0 -2px 10px rgba(0,0,0,.08)}
+.tabbar button{border:0;background:none;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0 4px;font-size:11px;font-weight:600;letter-spacing:.06em;border-radius:10px}
+.tabbar svg{width:24px;height:24px}
+.tabbar button[aria-current=page]{color:var(--accent);background:var(--soft)}
+.tabbar button[aria-current=page] svg{transform:scale(1.08)}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+h2{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:0 0 10px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+label{display:block;font-size:12px;color:var(--muted);margin:8px 0 3px}
+input,select{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:6px;padding:7px 8px;min-width:0}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+.mono,input.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.r2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.r3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media (max-width:420px){.r3{grid-template-columns:1fr 1fr}}
+button{font:inherit;border:1px solid var(--line);border-radius:6px;padding:7px 10px;background:var(--field);color:var(--ink);cursor:pointer}
+button:disabled{opacity:.45;cursor:default}
+button.link{border:0;background:none;color:var(--accent);padding:4px 0;font-size:13px;font-weight:600}
+.inbtn{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}
+.seg{display:inline-grid;grid-auto-flow:column;grid-auto-columns:1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg.full{display:grid;width:100%}
+.seg button{border:0;border-radius:0;padding:8px 14px;background:var(--field);color:var(--muted)}
+.seg button[aria-checked=true]{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.chk{display:flex;gap:8px;align-items:center;margin-top:12px;font-size:14px;color:var(--ink)}
+.chk input{width:20px;height:20px;accent-color:var(--accent)}
+.hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4}
+.s{font-size:12px;color:var(--muted)}
+.nodata{border:1px solid var(--warn);border-left-width:4px;border-radius:8px;padding:8px 10px;margin-top:10px;font-size:13px}
+.nodata b{color:var(--warn)}
+.nodata[hidden],.msg[hidden]{display:none}
+.msg{color:var(--warn);font-size:13px;margin-top:8px}
+.res{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;margin:0;align-items:baseline}
+.res dt{color:var(--muted);font-size:13px}
+.res dd{margin:0;text-align:right;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:600}
+.res dd.bad{color:var(--err)}
+.big{padding:10px;border-radius:8px;background:var(--soft);margin-bottom:10px}
+.big .res dd{font-size:20px;font-weight:700;color:var(--accent)}
+.big .res dt{font-size:14px;color:var(--ink)}
+.empty{text-align:center;padding:28px 16px;color:var(--muted)}
+dialog.dlg{border:1px solid var(--line);border-radius:14px;background:var(--panel);color:var(--ink);padding:18px;width:min(420px,calc(100vw - 32px))}
+dialog.dlg::backdrop{background:rgba(0,0,0,.55)}
+.dlghead{display:flex;justify-content:space-between;align-items:center;margin:0 0 8px}
+.dlghead h3{margin:0;font-size:17px}
+.setlist{display:grid;grid-template-columns:auto minmax(0,1fr);gap:10px 14px;align-items:center;margin:0}
+.setlist dt{color:var(--muted);font-size:13px} .setlist dd{margin:0}
+.brand{text-align:center;color:var(--muted);font-size:12px;letter-spacing:.04em;padding:10px 0 4px}
+</style>
+</head>
+<body>
+<main>
+  <header class="appbar">
+    <h1>EDTO CRZ <span id="tabTitle" class="tabtitle"></span><small class="byline">B737 engine inop</small></h1>
+    <span class="right">
+      <button type="button" id="updBadge" class="updbadge" hidden>Update available</button>
+      <button type="button" id="setOpen" class="iconbtn" aria-label="Settings"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </span>
+  </header>
+
+  <dialog id="setDlg" class="dlg" aria-labelledby="setTitle">
+    <form method="dialog" class="dlghead"><h3 id="setTitle">Settings</h3><button class="iconbtn" aria-label="Close">✕</button></form>
+    <dl class="setlist">
+      <dt>Appearance</dt>
+      <dd><div class="seg" id="themeSeg" role="radiogroup" aria-label="Appearance"><button type="button" data-theme="device" role="radio">Device</button><button type="button" data-theme="light" role="radio">Light</button><button type="button" data-theme="dark" role="radio">Dark</button></div></dd>
+      <dt>Version</dt><dd id="verTxt" class="mono"></dd>
+      <dt>Updates</dt><dd><button type="button" id="updBtn">Check for update</button> <span id="updMsg" class="s"></span></dd>
+      <dt>Data</dt><dd class="s">B737-800 · D6-27370-8H6-MAS OI.4.6 (1 Oct 2024)</dd>
+    </dl>
+  </dialog>
+
+  <!-- ================= CRZ ================= -->
+  <div class="view" data-view="crz" hidden>
+    <section class="empty">Cruise calculations: coming next.</section>
+  </div>
+
+  <!-- ================= EDTO ================= -->
+  <div class="view" data-view="edto" hidden>
+    <section>
+      <h2>Aircraft</h2>
+      <div class="seg full" id="variantSeg" role="radiogroup" aria-label="Aircraft variant">
+        <button type="button" role="radio" data-v="737-800">737-800</button><button type="button" role="radio" data-v="737-8">737-8</button>
+      </div>
+      <label>Calculation</label>
+      <div class="seg full" id="calcSeg" role="radiogroup" aria-label="Calculation">
+        <button type="button" role="radio" data-c="alt">Altitude capability</button><button type="button" role="radio" data-c="cf">Critical fuel</button>
+      </div>
+      <div class="nodata" id="noData" hidden><b>No 737-8 charts loaded.</b> Weight at ETP still works; altitude capability and critical fuel need 737-8 data.</div>
+    </section>
+
+    <!-- ---------- Altitude capability ---------- -->
+    <section data-calc="alt">
+      <h2>Weight</h2>
+      <div class="r2">
+        <div><label for="zfw">ZFW kg</label><input id="zfw" data-k="zfw" class="mono" type="number" inputmode="numeric" step="100" min="0" placeholder="62000"></div>
+        <div><label for="fob">Fuel on board kg</label><input id="fob" data-k="fob" class="mono" type="number" inputmode="numeric" step="100" min="0" placeholder="14000"></div>
+      </div>
+    </section>
+
+    <section data-calc="alt">
+      <h2>Fuel to burn to ETP</h2>
+      <div class="r3">
+        <div><label for="nowUtc">Current UTC</label><div class="inbtn"><input id="nowUtc" data-k="nowUtc" class="mono" inputmode="numeric" placeholder="1200" maxlength="5" autocomplete="off"><button type="button" id="nowBtn">Now</button></div></div>
+        <div><label for="etaUtc">ETA ETP UTC</label><input id="etaUtc" data-k="etaUtc" class="mono" inputmode="numeric" placeholder="1330" maxlength="5" autocomplete="off"></div>
+        <div><label for="burn">Burn kg/h</label><input id="burn" data-k="burn" class="mono" type="number" inputmode="numeric" step="10" min="0" placeholder="2400"></div>
+      </div>
+    </section>
+
+    <section data-calc="alt">
+      <h2>Conditions</h2>
+      <div class="r2">
+        <div><label for="isa">ISA deviation °C</label><input id="isa" data-k="isa" class="mono" type="number" inputmode="decimal" step="1" placeholder="0"></div>
+        <div><label for="antiIce">Anti-ice</label><select id="antiIce" data-k="antiIce"><option value="off">Off</option><option value="engine">Engine</option><option value="engineWing">Engine + wing</option></select></div>
+      </div>
+    </section>
+
+    <section data-calc="alt" aria-live="polite">
+      <h2>Result</h2>
+      <div class="big"><dl class="res">
+        <dt>Gross weight at ETP</dt><dd id="rGw">—</dd>
+        <dt>Alt capability · LRC</dt><dd id="rLrc">—</dd>
+        <dt>Alt capability · 310 KIAS</dt><dd id="r310">—</dd>
+      </dl></div>
+      <dl class="res">
+        <dt>Time to ETP</dt><dd id="rTime">—</dd>
+        <dt>Fuel to burn</dt><dd id="rBurn">—</dd>
+        <dt>Fuel remaining at ETP</dt><dd id="rRem">—</dd>
+      </dl>
+      <div class="msg" id="rMsg" hidden></div>
+      <div class="hint">Engine inop, max continuous thrust, 100 ft/min residual climb. Linear interpolation, no extrapolation. Altitudes rounded down to 100 ft.</div>
+    </section>
+
+    <!-- ---------- Critical fuel ---------- -->
+    <section data-calc="cf" hidden>
+      <h2>Inputs</h2>
+      <div class="r2">
+        <div><label for="dist">Distance ETP → alt NM</label><input id="dist" data-k="dist" class="mono" type="number" inputmode="numeric" step="10" min="0" placeholder="900"></div>
+        <div><label for="cpw">Weight at CP kg</label><div class="inbtn"><input id="cpw" data-k="cpw" class="mono" type="number" inputmode="numeric" step="100" min="0"><button type="button" id="gwBtn" disabled>ETP GW</button></div></div>
+      </div>
+      <div class="r2">
+        <div><label for="wind">Wind component kt</label><div class="inbtn"><input id="wind" data-k="wind" class="mono" type="number" inputmode="numeric" step="1" min="0" placeholder="0"><select id="windDir" data-k="windDir" aria-label="Wind direction" style="width:auto"><option value="HW">HW</option><option value="TW">TW</option></select></div></div>
+        <div><label for="isa2">ISA deviation °C</label><input id="isa2" data-k="isa" class="mono" type="number" inputmode="decimal" step="1" placeholder="0"></div>
+      </div>
+      <label class="chk"><input type="checkbox" id="icing" data-k="icing"> Icing conditions (+17 %)</label>
+    </section>
+
+    <section data-calc="cf" hidden aria-live="polite">
+      <h2>Result</h2>
+      <div class="big"><dl class="res"><dt>Critical fuel · engine inop</dt><dd id="cTotal">—</dd></dl></div>
+      <dl class="res">
+        <dt>Nil-wind fuel</dt><dd id="cNil">—</dd>
+        <dt>Wind correction</dt><dd id="cWind">—</dd>
+        <dt>ISA correction</dt><dd id="cIsa">—</dd>
+        <dt>Icing correction</dt><dd id="cIce">—</dd>
+      </dl>
+      <div class="msg" id="cMsg" hidden></div>
+      <div class="hint">310 KIAS engine-inop critical fuel. Compare with all-engines critical fuel and use the higher (all-engines chart not loaded). Performance deterioration not included. Total rounded up to 100 kg.</div>
+    </section>
+  </div>
+
+  <!-- ================= APP ================= -->
+  <div class="view" data-view="app" hidden>
+    <section class="empty">Approach calculations: coming next.</section>
+  </div>
+
+  <div class="brand">EDTO CRZ · reference tool, check against your approved data</div>
+</main>
+
+<nav class="tabbar" id="tabbar" aria-label="Sections">
+  <button type="button" data-tab="crz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" fill="currentColor"/></svg><span>CRZ</span></button>
+  <button type="button" data-tab="edto"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span>EDTO</span></button>
+  <button type="button" data-tab="app"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M12 3v3M7 17l5-8 5 8z"/></svg><span>APP</span></button>
+</nav>
+
+<script src="perf.js"></script>
+<script>
+(function(){
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const store = {
+    get(k){ try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+    set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+  };
+
+  // ---------- EDTO state (times are never restored: they go stale) ----------
+  const NOT_SAVED = ["nowUtc", "etaUtc"];
+  const state = Object.assign({ variant: "737-800", calc: "alt", antiIce: "off", windDir: "HW", icing: false }, store.get("edto.inputs") || {});
+  function save(){ const o = {}; for (const k in state) if (!NOT_SAVED.includes(k)) o[k] = state[k]; store.set("edto.inputs", o); }
+
+  const fields = document.querySelectorAll("[data-k]");
+  function syncFields(except){
+    fields.forEach((el) => {
+      if (el === except) return;
+      const v = state[el.dataset.k];
+      if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? "";
+    });
+    document.querySelectorAll("#variantSeg button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.v === state.variant)));
+    document.querySelectorAll("#calcSeg button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.c === state.calc)));
+    document.querySelectorAll("[data-calc]").forEach((s) => s.hidden = s.dataset.calc !== state.calc);
+  }
+  fields.forEach((el) => el.addEventListener("input", () => {
+    state[el.dataset.k] = el.type === "checkbox" ? el.checked : el.value;
+    syncFields(el); save(); calc();
+  }));
+  document.querySelectorAll("#variantSeg button").forEach((b) => b.addEventListener("click", () => { state.variant = b.dataset.v; syncFields(); save(); calc(); }));
+  document.querySelectorAll("#calcSeg button").forEach((b) => b.addEventListener("click", () => { state.calc = b.dataset.c; syncFields(); save(); }));
+
+  const utcNow = () => { const d = new Date(); return String(d.getUTCHours()).padStart(2, "0") + String(d.getUTCMinutes()).padStart(2, "0"); };
+  $("nowBtn").addEventListener("click", () => { state.nowUtc = utcNow(); syncFields(); calc(); });
+
+  let etpGw = null;
+  $("gwBtn").addEventListener("click", () => { if (etpGw == null) return; state.cpw = String(Math.round(etpGw)); syncFields(); save(); calc(); });
+
+  // ---------- formatting (conservative rounding) ----------
+  const num = (v) => (v === "" || v == null ? NaN : Number(v));
+  const kg = (v) => Math.round(v).toLocaleString("en-US") + " kg";
+  const kgT = (t) => kg(t * 1000);
+  const kgUp = (t) => kg(Math.ceil((t * 1000) / 100) * 100);          // fuel: up to 100 kg
+  const ft = (v) => (Math.floor(v / 100) * 100).toLocaleString("en-US") + " ft"; // altitude: down to 100 ft
+  const pct = (v) => "+" + v.toFixed(2) + " %";
+  const msg = (el, t) => { el.hidden = !t; el.textContent = t || ""; };
+  const set = (id, t) => { $(id).textContent = t; };
+
+  function calc(){
+    const data = PERF.VARIANTS[state.variant];
+    $("noData").hidden = !!data;
+
+    // weight at ETP (any variant)
+    const w = PERF.etpWeight({ zfw: num(state.zfw), fob: num(state.fob), nowUtc: state.nowUtc, etaUtc: state.etaUtc, burnKgH: num(state.burn) });
+    const ok = !w.error;
+    etpGw = ok ? w.grossWeight : null;
+    set("rTime", ok ? PERF.formatHHMM(w.minutes) : "—");
+    set("rBurn", ok ? kg(w.fuelToBurn) : "—");
+    set("rRem", ok ? kg(w.fuelRemaining) : "—");
+    $("rRem").classList.toggle("bad", ok && w.fuelRemaining < 0);
+    set("rGw", ok ? kg(w.grossWeight) : "—");
+    $("gwBtn").disabled = etpGw == null;
+    $("gwBtn").title = etpGw == null ? "Fill in Altitude capability first" : kg(etpGw);
+
+    // altitude capability
+    const isa = num(state.isa);
+    let lrc = null, k310 = null, aMsg = ok ? w.warning : null;
+    if (ok && data && Number.isFinite(isa)) {
+      const t = w.grossWeight / 1000;
+      lrc = PERF.altitudeCapability(data.altitudeCapability, "lrc", t, isa, state.antiIce);
+      k310 = PERF.altitudeCapability(data.altitudeCapability, "kias310", t, isa, state.antiIce);
+      if (lrc == null) aMsg = "Outside chart: gross weight 40,000–85,000 kg and ISA up to +20 °C.";
+    } else if (ok && data) aMsg = aMsg || "Enter ISA deviation for altitude capability.";
+    set("rLrc", lrc == null ? "—" : ft(lrc));
+    set("r310", k310 == null ? "—" : ft(k310));
+    msg($("rMsg"), aMsg);
+
+    // critical fuel
+    const blank = () => ["cNil", "cWind", "cIsa", "cIce", "cTotal"].forEach((id) => set(id, "—"));
+    if (!data) { blank(); msg($("cMsg"), null); return; }
+    const touched = ["dist", "cpw", "wind"].some((k) => state[k] != null && state[k] !== "");
+    const windMag = state.wind === "" || state.wind == null ? 0 : num(state.wind);
+    const cf = PERF.criticalFuel(data.criticalFuel, {
+      distNm: num(state.dist), weightT: num(state.cpw) / 1000,
+      windKt: state.windDir === "TW" ? -windMag : windMag,
+      isaDev: state.isa === "" || state.isa == null ? 0 : isa,
+      icing: !!state.icing,
+    });
+    if (cf.error) { blank(); msg($("cMsg"), touched ? cf.error : null); return; }
+    set("cNil", kgT(cf.nilWind));
+    set("cWind", (cf.windCorr >= 0 ? "+" : "−") + kgT(Math.abs(cf.windCorr)));
+    set("cIsa", pct(cf.isaPct));
+    set("cIce", pct(cf.icingPct));
+    set("cTotal", kgUp(cf.total));
+    msg($("cMsg"), null);
+  }
+
+  if (!state.nowUtc) state.nowUtc = utcNow();
+  syncFields(); calc();
+
+  // ---------- tabs (bottom bar) ----------
+  const TABS = { crz: "CRZ", edto: "EDTO", app: "APP" };
+  const tabScroll = {};
+  let curTab = null;
+  function showTab(name){
+    if (!TABS[name]) name = "edto";
+    if (curTab) tabScroll[curTab] = window.scrollY;
+    document.querySelectorAll(".view").forEach((v) => v.hidden = v.dataset.view !== name);
+    document.querySelectorAll("#tabbar button").forEach((b) => b.dataset.tab === name ? b.setAttribute("aria-current", "page") : b.removeAttribute("aria-current"));
+    $("tabTitle").textContent = TABS[name];
+    curTab = name; store.set("edto.tab", name);
+    try { history.replaceState(null, "", "#" + name); } catch (e) {}
+    window.scrollTo(0, tabScroll[name] || 0);
+  }
+  document.querySelectorAll("#tabbar button").forEach((b) => b.addEventListener("click", () => {
+    if (b.dataset.tab === curTab) window.scrollTo({ top: 0, behavior: "smooth" }); else showTab(b.dataset.tab);
+  }));
+  window.addEventListener("hashchange", () => { const h = location.hash.slice(1); if (TABS[h] && h !== curTab) showTab(h); });
+  showTab(location.hash.slice(1) || store.get("edto.tab") || "edto");
+
+  // ---------- settings: appearance ----------
+  $("setOpen").addEventListener("click", () => $("setDlg").showModal());
+  function setTheme(t){
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+    store.set("edto.theme", t);
+    document.querySelectorAll("#themeSeg button").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.theme === t)));
+    const dark = t === "dark" || (t !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+    document.querySelector('meta[name="theme-color"]').setAttribute("content", dark ? "#0f1720" : "#f5f6f8");
+  }
+  document.querySelectorAll("#themeSeg button").forEach((b) => b.addEventListener("click", () => setTheme(b.dataset.theme)));
+  setTheme(store.get("edto.theme") || "device");
+
+  // ---------- version and update ----------
+  // Keep APP_VERSION equal to version.json; bump both (and CACHE in sw.js) on each release.
+  const APP_VERSION = "1-02-26";
+  $("verTxt").textContent = APP_VERSION;
+  async function checkUpdate(manual){
+    if (!navigator.onLine) { if (manual) $("updMsg").textContent = "Offline: connect to check."; return; }
+    if (manual) $("updMsg").textContent = "Checking…";
+    try {
+      const j = await (await fetch("version.json?t=" + Date.now(), { cache: "no-store" })).json();
+      if (j.version && j.version !== APP_VERSION) {
+        $("updMsg").innerHTML = "";
+        const b = document.createElement("button"); b.type = "button"; b.className = "link"; b.textContent = "Update to " + j.version;
+        b.addEventListener("click", async () => {
+          $("updMsg").textContent = "Updating…";
+          try {
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (reg) {
+              const took = new Promise((ok) => { navigator.serviceWorker.addEventListener("controllerchange", ok, { once: true }); setTimeout(ok, 6000); });
+              await reg.update();
+              if (reg.installing || reg.waiting) await took;
+            }
+          } catch (e) {}
+          location.reload();
+        });
+        $("updMsg").appendChild(b);
+        $("updBadge").hidden = false;
+      } else if (manual) $("updMsg").textContent = "You have the latest version.";
+    } catch (e) { if (manual) $("updMsg").textContent = "Could not check."; }
+  }
+  $("updBtn").addEventListener("click", () => checkUpdate(true));
+  $("updBadge").addEventListener("click", () => { $("setDlg").showModal(); checkUpdate(true); });
+  setTimeout(() => checkUpdate(false), 1500);
+
+  if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
